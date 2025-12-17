@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: legaltech-postgres
+    environment:
+      POSTGRES_DB: LegalTechDb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - legaltech-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: legaltech-api
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=postgres;Database=LegalTechDb;User Id=postgres;Password=postgres;Port=5432;"
+      ASPNETCORE_ENVIRONMENT: Production
+      Jwt__SecretKey: "your-super-secret-key-change-in-production-at-least-32-chars"
+    ports:
+      - "5001:80"
+    depends_on:
+      - postgres
+    networks:
+      - legaltech-network
+
+  frontend:
+    build:
+      context: frontend/legaltech-web
+      dockerfile: Dockerfile
+    container_name: legaltech-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://api:80
+    depends_on:
+      - api
+    networks:
+      - legaltech-network
+
+volumes:
+  postgres_data:
+
+networks:
+  legaltech-network:
+    driver: bridge
